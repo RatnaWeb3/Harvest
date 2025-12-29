@@ -1,0 +1,15 @@
+[package]
+name = "Harvest"
+version = "1.0.0"
+authors = ["Harvest Team"]
+
+[addresses]
+harvest = "_"
+
+[dev-addresses]
+harvest = "0xbeef"
+
+[dependencies.AptosFramework]
+git = "https://github.com/movementlabsxyz/aptos-core.git"
+rev = "movement"
+subdir = "aptos-move/framework/aptos-framework"
