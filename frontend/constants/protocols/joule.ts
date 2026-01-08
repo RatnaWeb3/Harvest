@@ -11,16 +11,19 @@
  * - MOVE incentive rewards
  */
 
-// Movement Testnet address (mainnet TBA)
-const JOULE_MODULE_ADDRESS =
-  process.env.NEXT_PUBLIC_JOULE_ADDRESS ||
-  '0x7ada55ecf28c22d62f0b05c21ecb20c5767ef743fb0bb2cf486948d0a24413bf'
+// No deployed address yet - module not found on testnet
+// Set NEXT_PUBLIC_JOULE_ADDRESS when Joule deploys their contracts
+const JOULE_MODULE_ADDRESS: string | null =
+  process.env.NEXT_PUBLIC_JOULE_ADDRESS || null
 
 export const JOULE_CONFIG = {
   moduleAddress: JOULE_MODULE_ADDRESS,
   displayName: 'Joule',
   color: '#3B82F6',
   icon: 'joule',
+  status: 'coming_soon' as const,
+  network: 'movement-testnet' as const,
+  description: 'Lending/Borrowing Protocol - The Liquidity Hub of MoveVM',
 
   // View functions (standard lending protocol pattern)
   viewFunctions: {
@@ -56,7 +59,11 @@ export const JOULE_CONFIG = {
 
 // Check if Joule is deployed (has valid address)
 export const isJouleDeployed = (): boolean => {
-  return JOULE_MODULE_ADDRESS.length > 10 && JOULE_MODULE_ADDRESS !== '0x0'
+  return (
+    JOULE_MODULE_ADDRESS !== null &&
+    JOULE_MODULE_ADDRESS.length > 10 &&
+    JOULE_MODULE_ADDRESS !== '0x0'
+  )
 }
 
 export type JouleMarket = (typeof JOULE_CONFIG.markets)[number]

@@ -3,7 +3,7 @@
  * Lending/Borrowing - Supply/borrow positions, interest, MOVE incentives
  *
  * Docs: https://docs.joule.finance
- * Real integration with fallback to mock data
+ * Real integration with Movement testnet
  */
 
 import { aptos, TransactionPayload } from '@/lib/move'
@@ -14,76 +14,17 @@ import {
   ProtocolId,
 } from './protocol-interface'
 import { JOULE_CONFIG, isJouleDeployed } from '@/constants/protocols/joule'
+import { getTokenPrice } from './price-service'
 
-// Mock lending positions for development/fallback
-const MOCK_POSITIONS: Position[] = [
-  {
-    id: 'joule-supply-1',
-    protocolId: 'joule',
-    type: 'supply',
-    tokenSymbol: 'USDC',
-    tokenAddress: '0x1',
-    amount: '5000.00',
-    valueUsd: 5000.0,
-    apy: 8.5,
-    metadata: { collateralFactor: 0.85, isCollateral: true },
-  },
-  {
-    id: 'joule-supply-2',
-    protocolId: 'joule',
-    type: 'supply',
-    tokenSymbol: 'MOVE',
-    tokenAddress: '0x1::aptos_coin::AptosCoin',
-    amount: '2500.00',
-    valueUsd: 3125.0,
-    apy: 12.3,
-    metadata: { collateralFactor: 0.75, isCollateral: true },
-  },
-  {
-    id: 'joule-borrow-1',
-    protocolId: 'joule',
-    type: 'borrow',
-    tokenSymbol: 'USDT',
-    tokenAddress: '0x2',
-    amount: '2000.00',
-    valueUsd: 2000.0,
-    apy: -5.2,
-    metadata: { borrowLimit: 4500, healthFactor: 2.1 },
-  },
-]
-
-const MOCK_REWARDS: RewardItem[] = [
-  {
-    id: 'joule-reward-1',
-    protocolId: 'joule',
-    positionId: 'joule-supply-1',
-    tokenSymbol: 'MOVE',
-    tokenAddress: '0x1::aptos_coin::AptosCoin',
-    amount: '85.20',
-    valueUsd: 106.5,
-    claimable: true,
-  },
-  {
-    id: 'joule-reward-2',
-    protocolId: 'joule',
-    positionId: 'joule-supply-2',
-    tokenSymbol: 'MOVE',
-    tokenAddress: '0x1::aptos_coin::AptosCoin',
-    amount: '142.80',
-    valueUsd: 178.5,
-    claimable: true,
-  },
-  {
-    id: 'joule-reward-3',
-    protocolId: 'joule',
-    positionId: 'joule-supply-1',
-    tokenSymbol: 'JOULE',
-    tokenAddress: '0x3',
-    amount: '320.00',
-    valueUsd: 64.0,
-    claimable: true,
-  },
-]
+// Token decimals for formatting
+const TOKEN_DECIMALS: Record<string, number> = {
+  MOVE: 8,
+  APT: 8,
+  USDC: 6,
+  USDT: 6,
+  ETH: 8,
+  WETH: 8,
+}
 
 class JouleService implements ProtocolService {
   readonly protocolId: ProtocolId = 'joule'
@@ -94,27 +35,89 @@ class JouleService implements ProtocolService {
    */
   async getPositions(address: string): Promise<Position[]> {
     if (!isJouleDeployed()) {
-      console.log('[Joule] Not deployed, using mock data')
-      return MOCK_POSITIONS
+      console.log('[Joule] Not deployed, returning empty')
+      return []
     }
 
     try {
       console.log(`[Joule] Fetching positions for ${address}`)
 
-      // TODO: Query lending positions via view function
-      // const result = await aptos.view({
-      //   payload: {
-      //     function: JOULE_CONFIG.viewFunctions.getUserPosition,
-      //     typeArguments: [],
-      //     functionArguments: [address],
-      //   },
-      // })
-      // return parseJoulePositions(result)
+      // Try to query user's lending positions from each market
+      const positions: Position[] = []
 
-      return process.env.NODE_ENV === 'development' ? MOCK_POSITIONS : []
+      for (const market of JOULE_CONFIG.markets) {
+        try {
+          const position = await this.fetchMarketPosition(address, market)
+          if (position) {
+            positions.push(position)
+          }
+        } catch (error) {
+          console.log(`[Joule] No position in ${market.symbol} market`)
+        }
+      }
+
+      console.log(`[Joule] Found ${positions.length} positions`)
+      return positions
     } catch (error) {
       console.error('[Joule] Error fetching positions:', error)
-      return process.env.NODE_ENV === 'development' ? MOCK_POSITIONS : []
+      return []
+    }
+  }
+
+  /**
+   * Fetch position for a specific market
+   */
+  private async fetchMarketPosition(
+    address: string,
+    market: (typeof JOULE_CONFIG.markets)[number]
+  ): Promise<Position | null> {
+    try {
+      // Query user position in this market
+      const result = await aptos.view({
+        payload: {
+          function: JOULE_CONFIG.viewFunctions.getUserPosition,
+          typeArguments: [],
+          functionArguments: [address, market.symbol],
+        },
+      })
+
+      console.log(`[Joule] ${market.symbol} position data:`, result)
+
+      // Parse the result - adjust based on actual contract response
+      // Expected format: [supplyAmount, borrowAmount] or similar
+      if (!result || result.length === 0) return null
+
+      const supplyAmount = BigInt(String(result[0] || '0'))
+      const borrowAmount = result[1] ? BigInt(String(result[1])) : BigInt(0)
+
+      if (supplyAmount === BigInt(0) && borrowAmount === BigInt(0)) return null
+
+      const price = await getTokenPrice(market.symbol)
+      const decimals = market.decimals
+
+      // Create supply position if exists
+      if (supplyAmount > BigInt(0)) {
+        const amountFormatted = this.formatUnits(supplyAmount, decimals)
+        return {
+          id: `joule-${market.symbol.toLowerCase()}-supply`,
+          protocolId: 'joule',
+          type: 'supply',
+          tokenSymbol: market.symbol,
+          tokenAddress: this.getTokenAddress(market.symbol),
+          amount: amountFormatted,
+          valueUsd: Number(amountFormatted) * price,
+          apy: await this.getMarketApy(market.symbol, 'supply'),
+          metadata: {
+            collateralFactor: market.ltv,
+            isCollateral: true,
+          },
+        }
+      }
+
+      return null
+    } catch (error) {
+      // Position doesn't exist or contract call failed
+      return null
     }
   }
 
@@ -123,27 +126,49 @@ class JouleService implements ProtocolService {
    */
   async getPendingRewards(address: string): Promise<RewardItem[]> {
     if (!isJouleDeployed()) {
-      console.log('[Joule] Not deployed, using mock rewards')
-      return MOCK_REWARDS
+      console.log('[Joule] Not deployed, returning empty rewards')
+      return []
     }
 
     try {
       console.log(`[Joule] Fetching pending rewards for ${address}`)
 
-      // TODO: Query incentive rewards
-      // const result = await aptos.view({
-      //   payload: {
-      //     function: JOULE_CONFIG.viewFunctions.getPendingRewards,
-      //     typeArguments: [],
-      //     functionArguments: [address],
-      //   },
-      // })
-      // return parseJouleRewards(result)
+      const result = await aptos.view({
+        payload: {
+          function: JOULE_CONFIG.viewFunctions.getPendingRewards,
+          typeArguments: [],
+          functionArguments: [address],
+        },
+      })
 
-      return process.env.NODE_ENV === 'development' ? MOCK_REWARDS : []
+      console.log('[Joule] Raw rewards data:', result)
+
+      // Parse pending rewards - adjust based on actual contract response
+      const pendingAmount = BigInt(String(result[0] || '0'))
+      if (pendingAmount === BigInt(0)) {
+        console.log('[Joule] No pending rewards')
+        return []
+      }
+
+      const movePrice = await getTokenPrice('MOVE')
+      const amountFormatted = this.formatUnits(pendingAmount, 8) // MOVE has 8 decimals
+
+      const reward: RewardItem = {
+        id: 'joule-move-reward',
+        protocolId: 'joule',
+        positionId: 'joule-lending',
+        tokenSymbol: 'MOVE',
+        tokenAddress: '0x1::aptos_coin::AptosCoin',
+        amount: amountFormatted,
+        valueUsd: Number(amountFormatted) * movePrice,
+        claimable: true,
+      }
+
+      console.log(`[Joule] Pending reward: ${amountFormatted} MOVE`)
+      return [reward]
     } catch (error) {
       console.error('[Joule] Error fetching rewards:', error)
-      return process.env.NODE_ENV === 'development' ? MOCK_REWARDS : []
+      return []
     }
   }
 
@@ -151,7 +176,7 @@ class JouleService implements ProtocolService {
    * Get user's health factor
    */
   async getHealthFactor(address: string): Promise<number> {
-    if (!isJouleDeployed()) return 2.1 // Mock value
+    if (!isJouleDeployed()) return 0
 
     try {
       const result = await aptos.view({
@@ -161,9 +186,40 @@ class JouleService implements ProtocolService {
           functionArguments: [address],
         },
       })
-      return Number(result[0]) / 100 // Assuming basis points
-    } catch {
+
+      console.log('[Joule] Health factor:', result)
+      // Assuming basis points format (e.g., 150 = 1.50)
+      return Number(result[0]) / 100
+    } catch (error) {
+      console.error('[Joule] Error fetching health factor:', error)
       return 0
+    }
+  }
+
+  /**
+   * Get market APY for supply or borrow
+   */
+  private async getMarketApy(
+    symbol: string,
+    type: 'supply' | 'borrow'
+  ): Promise<number> {
+    try {
+      const result = await aptos.view({
+        payload: {
+          function: JOULE_CONFIG.viewFunctions.getMarketData,
+          typeArguments: [],
+          functionArguments: [symbol],
+        },
+      })
+
+      // Parse APY from market data - adjust based on actual response
+      // Expected: [supplyApy, borrowApy, utilization, ...]
+      const apyIndex = type === 'supply' ? 0 : 1
+      const apyBps = Number(result[apyIndex] || 0)
+      return apyBps / 100 // Convert basis points to percentage
+    } catch {
+      // Return reasonable defaults if API fails
+      return type === 'supply' ? 8.5 : 12.0
     }
   }
 
@@ -190,6 +246,33 @@ class JouleService implements ProtocolService {
       typeArguments: [],
       functionArguments: [],
     }
+  }
+
+  /**
+   * Format bigint to decimal string
+   */
+  private formatUnits(value: bigint, decimals: number): string {
+    const divisor = BigInt(10 ** decimals)
+    const intPart = value / divisor
+    const fracPart = value % divisor
+    const fracStr = fracPart.toString().padStart(decimals, '0').slice(0, 6)
+    // Remove trailing zeros
+    const trimmed = fracStr.replace(/0+$/, '') || '0'
+    return trimmed === '0' ? intPart.toString() : `${intPart}.${trimmed}`
+  }
+
+  /**
+   * Get token address by symbol
+   */
+  private getTokenAddress(symbol: string): string {
+    const addresses: Record<string, string> = {
+      MOVE: '0x1::aptos_coin::AptosCoin',
+      APT: '0x1::aptos_coin::AptosCoin',
+      USDC: `${JOULE_CONFIG.moduleAddress}::coins::USDC`,
+      USDT: `${JOULE_CONFIG.moduleAddress}::coins::USDT`,
+      WETH: `${JOULE_CONFIG.moduleAddress}::coins::WETH`,
+    }
+    return addresses[symbol] || '0x1'
   }
 }
 

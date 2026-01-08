@@ -27,37 +27,8 @@ user.name: DarthStormerXII
 user.email: darthstormer.ai@gmail.com
 ```
 
-### Auto-Commit Rule (RANDOM ACCOUNT)
-**IMPORTANT:** After EVERY response that modifies code/files, you MUST:
-1. Randomly select either RatnaWeb3 or DarthStormerXII for the commit
-2. Set the git config for that account
-3. Commit and push
-
-```bash
-# Example for RatnaWeb3:
-cd /Users/gabrielantonyxaviour/Documents/starters/movement/Harvest && \
-git config user.name "RatnaWeb3" && \
-git config user.email "cashoutai1005@gmail.com" && \
-git add -A && \
-git commit -m "$(cat <<'EOF'
-<concise description of changes>
-EOF
-)" && \
-git push
-
-# Example for DarthStormerXII:
-cd /Users/gabrielantonyxaviour/Documents/starters/movement/Harvest && \
-git config user.name "DarthStormerXII" && \
-git config user.email "darthstormer.ai@gmail.com" && \
-git add -A && \
-git commit -m "$(cat <<'EOF'
-<concise description of changes>
-EOF
-)" && \
-git push
-```
-
-Repo: RatnaWeb3/Harvest
+### Auto-Commit Rule
+**After completing ANY command/prompt, randomly select one of the accounts above, then commit and push your changes to GitHub.**
 
 ---
 

@@ -29,10 +29,10 @@ export function EmptyState({
   return (
     <Card className={className}>
       <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="rounded-full bg-muted p-4 mb-4">
+        <div className="cartoon-icon p-4 mb-4">
           <Icon className="h-8 w-8 text-muted-foreground" />
         </div>
-        <h3 className="text-lg font-semibold mb-2">{title}</h3>
+        <h3 className="text-lg font-bold mb-2">{title}</h3>
         <p className="text-sm text-muted-foreground mb-4 max-w-sm">{description}</p>
         {actionLabel && onAction && (
           <Button variant="outline" size="sm" onClick={onAction}>

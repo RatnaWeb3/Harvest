@@ -8,7 +8,14 @@
 import { useCallback, useMemo } from 'react'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { usePrivy } from '@privy-io/react-auth'
-import { aptos } from './client'
+import { useSignRawHash } from '@privy-io/react-auth/extended-chains'
+import {
+  AccountAuthenticatorEd25519,
+  Ed25519PublicKey,
+  Ed25519Signature,
+  generateSigningMessageForTransaction,
+} from '@aptos-labs/ts-sdk'
+import { aptos, toHex } from '@/app/lib/aptos'
 import type { TransactionPayload, WalletState } from './types'
 
 /**
@@ -19,20 +26,23 @@ export function useAptosClient() {
   return aptos
 }
 
-// Helper to extract Aptos wallet address from Privy linked accounts
-function getPrivyAptosAddress(
-  linkedAccounts: ReturnType<typeof usePrivy>['user']
-): string | null {
-  if (!linkedAccounts?.linkedAccounts) return null
+// Helper to extract Aptos wallet from Privy linked accounts
+function getPrivyAptosWallet(
+  user: ReturnType<typeof usePrivy>['user']
+): { address: string; publicKey: string } | null {
+  if (!user?.linkedAccounts) return null
 
-  for (const account of linkedAccounts.linkedAccounts) {
+  for (const account of user.linkedAccounts) {
     if (
       account.type === 'wallet' &&
       'chainType' in account &&
       account.chainType === 'aptos' &&
       'address' in account
     ) {
-      return account.address as string
+      return {
+        address: account.address as string,
+        publicKey: (account as any).publicKey || (account as any).public_key || '',
+      }
     }
   }
   return null
@@ -48,17 +58,18 @@ export function useAptosWallet(): WalletState {
 
   // Privy wallet
   const { user, authenticated, logout } = usePrivy()
+  const { signRawHash } = useSignRawHash()
 
-  // Get Privy Aptos wallet address
-  const privyAptosAddress = getPrivyAptosAddress(user)
-  const isPrivy = Boolean(privyAptosAddress)
+  // Get Privy Aptos wallet
+  const privyWallet = getPrivyAptosWallet(user)
+  const isPrivy = Boolean(privyWallet)
   const isNativeConnected = Boolean(nativeWallet.connected && nativeWallet.account)
 
   // Determine connection state and address
   const connected = isNativeConnected || (authenticated && isPrivy)
   const address: string | null = isNativeConnected
     ? nativeWallet.account?.address?.toString() || null
-    : privyAptosAddress
+    : privyWallet?.address || null
 
   // Sign and submit transaction - unified interface
   const signAndSubmitTransaction = useCallback(
@@ -75,14 +86,65 @@ export function useAptosWallet(): WalletState {
         return response.hash
       }
 
-      if (isPrivy && privyAptosAddress) {
-        // TODO: Implement Privy transaction signing
-        throw new Error('Privy transaction signing not yet implemented')
+      if (isPrivy && privyWallet) {
+        // Build the transaction
+        const rawTxn = await aptos.transaction.build.simple({
+          sender: privyWallet.address,
+          data: {
+            function: payload.function as `${string}::${string}::${string}`,
+            typeArguments: payload.typeArguments as [],
+            functionArguments: payload.functionArguments as [],
+          },
+        })
+
+        // Generate signing message
+        const message = generateSigningMessageForTransaction(rawTxn)
+
+        // Sign with Privy wallet
+        const { signature: rawSignature } = await signRawHash({
+          address: privyWallet.address,
+          chainType: 'aptos',
+          hash: `0x${toHex(message)}`,
+        })
+
+        // Clean public key - remove 0x prefix and leading byte if needed
+        let cleanPublicKey = privyWallet.publicKey.startsWith('0x')
+          ? privyWallet.publicKey.slice(2)
+          : privyWallet.publicKey
+
+        if (cleanPublicKey.length === 66) {
+          cleanPublicKey = cleanPublicKey.slice(2)
+        }
+
+        // Create authenticator
+        const senderAuthenticator = new AccountAuthenticatorEd25519(
+          new Ed25519PublicKey(cleanPublicKey),
+          new Ed25519Signature(
+            rawSignature.startsWith('0x') ? rawSignature.slice(2) : rawSignature
+          )
+        )
+
+        // Submit the signed transaction
+        const committedTransaction = await aptos.transaction.submit.simple({
+          transaction: rawTxn,
+          senderAuthenticator,
+        })
+
+        // Wait for confirmation
+        const executed = await aptos.waitForTransaction({
+          transactionHash: committedTransaction.hash,
+        })
+
+        if (!executed.success) {
+          throw new Error('Transaction failed')
+        }
+
+        return committedTransaction.hash
       }
 
       throw new Error('No wallet connected')
     },
-    [isNativeConnected, isPrivy, nativeWallet, privyAptosAddress]
+    [isNativeConnected, isPrivy, nativeWallet, privyWallet, signRawHash]
   )
 
   // Disconnect handler

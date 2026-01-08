@@ -1,80 +1,110 @@
-'use client';
+'use client'
 
-import { usePrivy } from '@privy-io/react-auth';
-import { useWallet } from '@aptos-labs/wallet-adapter-react';
-import { useCreateWallet } from '@privy-io/react-auth/extended-chains';
-import { useEffect, useState } from 'react';
-import LoginPage from './components/LoginPage';
-import CounterArena from './components/CounterArena';
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import { ArrowRight, TrendingUp, Wallet, Zap, Sparkles } from 'lucide-react'
+import { useAptosWallet } from '@/lib/move'
+import { Button } from '@/app/components/ui/button'
 
-export default function Home() {
-  const { ready, authenticated, user } = usePrivy();
-  const { account, connected } = useWallet();
-  const { createWallet } = useCreateWallet();
-  const [movementAddress, setMovementAddress] = useState<string>('');
-  const [isCreatingWallet, setIsCreatingWallet] = useState(false);
+const features = [
+  {
+    icon: TrendingUp,
+    title: 'Track Rewards',
+    description: 'Monitor pending rewards across all Movement protocols in one dashboard',
+  },
+  {
+    icon: Wallet,
+    title: 'Batch Claims',
+    description: 'Claim rewards from multiple protocols in a single transaction',
+  },
+  {
+    icon: Zap,
+    title: 'Auto-Compound',
+    description: 'Set up automatic reward reinvestment to maximize yields',
+  },
+]
 
-  // Handle Privy wallet setup
+export default function HomePage() {
+  const router = useRouter()
+  const { connected } = useAptosWallet()
+
+  // Auto-redirect connected users to dashboard
   useEffect(() => {
-    const setupMovementWallet = async () => {
-      if (!authenticated || !user || isCreatingWallet) return;
-
-      // Check if user already has an Aptos/Movement wallet
-      const moveWallet = user.linkedAccounts?.find(
-        (account: any) => account.chainType === 'aptos'
-      ) as any;
-
-      if (moveWallet) {
-        const address = moveWallet.address as string;
-        setMovementAddress(address);
-        console.log('Privy Movement Wallet Address:', address);
-      } else {
-        // Create a new Aptos/Movement wallet
-        console.log('No Movement wallet found. Creating one now...');
-        setIsCreatingWallet(true);
-        try {
-          const wallet = await createWallet({ chainType: 'aptos' });
-          const address = (wallet as any).address;
-          setMovementAddress(address);
-          console.log('Created Privy Movement Wallet Address:', address);
-        } catch (error) {
-          console.error('Error creating Movement wallet:', error);
-        } finally {
-          setIsCreatingWallet(false);
-        }
-      }
-    };
-
-    setupMovementWallet();
-  }, [authenticated, user, createWallet, isCreatingWallet]);
-
-  // Handle native wallet connection
-  useEffect(() => {
-    if (connected && account?.address) {
-      const address = account.address.toString();
-      setMovementAddress(address);
-      console.log('Native Wallet Address:', address);
+    if (connected) {
+      router.push('/dashboard')
     }
-  }, [connected, account]);
-
-  if (!ready) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#e8f4f8' }}>
-        <div className="text-2xl font-bold">Loading...</div>
-      </div>
-    );
-  }
-
-  // Show CounterArena if either Privy is authenticated OR native wallet is connected
-  const isWalletConnected = authenticated || connected;
+  }, [connected, router])
 
   return (
-    <>
-      {!isWalletConnected ? (
-        <LoginPage />
-      ) : (
-        <CounterArena username={movementAddress} />
-      )}
-    </>
-  );
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] px-4 py-12">
+      {/* Hero Section */}
+      <div className="text-center max-w-3xl mx-auto mb-16">
+        {/* Logo with floating animation */}
+        <div className="flex items-center justify-center mb-8">
+          <div className="animate-float">
+            <Image
+              src="/harvest-logo.png"
+              alt="Harvest"
+              width={120}
+              height={120}
+              className="drop-shadow-lg"
+            />
+          </div>
+        </div>
+
+        <div className="inline-flex items-center gap-2 cartoon-badge-primary mb-6">
+          <Sparkles className="h-3.5 w-3.5" />
+          Movement Network
+        </div>
+
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 text-gradient-primary tracking-tight">
+          Harvest Your Rewards
+        </h1>
+
+        <p className="text-lg md:text-xl text-muted-foreground mb-10 leading-relaxed max-w-2xl mx-auto">
+          The all-in-one dashboard for tracking, claiming, and auto-compounding
+          rewards across the Movement ecosystem.
+        </p>
+
+        <Button
+          onClick={() => router.push('/dashboard')}
+          size="lg"
+          className="gap-3 text-lg px-10"
+        >
+          Launch App
+          <ArrowRight className="h-5 w-5" />
+        </Button>
+      </div>
+
+      {/* Features Grid with Cartoon Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-5xl w-full mb-16">
+        {features.map((feature) => (
+          <div
+            key={feature.title}
+            className="cartoon-card hover-lift p-6"
+          >
+            <div className="cartoon-icon-primary w-14 h-14 mb-5">
+              <feature.icon className="h-7 w-7 text-primary" />
+            </div>
+            <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
+            <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Supported Protocols with cartoon badges */}
+      <div className="text-center">
+        <p className="text-sm text-muted-foreground mb-5 font-medium">
+          Supporting protocols on Movement Network
+        </p>
+        <div className="flex items-center justify-center flex-wrap gap-3">
+          <span className="cartoon-badge">Joule</span>
+          <span className="cartoon-badge">Meridian</span>
+          <span className="cartoon-badge">Yuzu</span>
+          <span className="cartoon-badge-primary">+ more</span>
+        </div>
+      </div>
+    </div>
+  )
 }

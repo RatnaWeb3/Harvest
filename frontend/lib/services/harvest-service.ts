@@ -84,10 +84,15 @@ class HarvestService {
     claims: ClaimRequest[]
   ): Promise<TransactionPayload[]> {
     const transactions = await Promise.all(
-      claims.map(async (claim) => {
-        const service = getProtocolService(claim.protocolId)
-        return service.buildClaimTransaction(address, claim.rewardIds)
-      })
+      claims
+        .filter((claim) => {
+          const service = getProtocolService(claim.protocolId)
+          return service !== null
+        })
+        .map(async (claim) => {
+          const service = getProtocolService(claim.protocolId)!
+          return service.buildClaimTransaction(address, claim.rewardIds)
+        })
     )
 
     return transactions
@@ -102,6 +107,9 @@ class HarvestService {
     rewardIds?: string[]
   ): Promise<TransactionPayload> {
     const service = getProtocolService(protocolId)
+    if (!service) {
+      throw new Error(`Protocol ${protocolId} is not currently active`)
+    }
     return service.buildClaimTransaction(address, rewardIds)
   }
 
@@ -120,6 +128,10 @@ class HarvestService {
     for (const claim of claims) {
       try {
         const service = getProtocolService(claim.protocol)
+        if (!service) {
+          console.warn(`Protocol ${claim.protocol} is not currently active, skipping`)
+          continue
+        }
         const payload = await service.buildClaimTransaction(address, claim.rewardIds)
         payloads.push(payload)
         protocols.push(claim.protocol)

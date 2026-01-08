@@ -20,6 +20,7 @@ import { ErrorCard } from '@/components/shared/error-card'
 import { TxStatusModal } from '@/components/shared/tx-status-modal'
 import { ClaimAllModal } from '@/components/rewards/claim-all-modal'
 import { BatchProgress } from '@/components/rewards/batch-progress'
+import { ComingSoonSection } from '@/components/dashboard/coming-soon-section'
 import type { ProtocolId, RewardItem } from './types'
 
 export default function DashboardPage() {
@@ -161,6 +162,9 @@ export default function DashboardPage() {
           <RecentClaims isLoading={isLoading} />
         </div>
       </div>
+
+      {/* Coming soon protocols */}
+      <ComingSoonSection />
 
       {/* Single claim modal */}
       <TxStatusModal

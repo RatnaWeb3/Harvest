@@ -9,18 +9,19 @@
  * Update YUZU_MODULE_ADDRESS when officially deployed.
  */
 
-// Placeholder until official deployment - check docs.yuzu.finance for updates
-const YUZU_MODULE_ADDRESS =
-  process.env.NEXT_PUBLIC_YUZU_ADDRESS ||
-  '0x0000000000000000000000000000000000000000000000000000000000000000'
+// No deployed address yet - mark as coming soon
+const YUZU_MODULE_ADDRESS: string | null = null
 
 export const YUZU_CONFIG = {
   moduleAddress: YUZU_MODULE_ADDRESS,
   displayName: 'Yuzu',
   color: '#F59E0B',
   icon: 'yuzu',
+  status: 'coming_soon' as const,
+  description: 'CLMM DEX - Concentrated liquidity for Movement',
 
   // View functions (from yuzuswap::liquidity_pool and yuzuswap::router)
+  // Note: These won't be called until protocol is deployed
   viewFunctions: {
     getPool: `${YUZU_MODULE_ADDRESS}::router::get_pool`,
     quoteSwap: `${YUZU_MODULE_ADDRESS}::liquidity_pool::quote_swap`,
@@ -55,12 +56,7 @@ export const YUZU_CONFIG = {
 } as const
 
 // Check if Yuzu is deployed (has valid address)
-export const isYuzuDeployed = (): boolean => {
-  return (
-    YUZU_MODULE_ADDRESS !==
-    '0x0000000000000000000000000000000000000000000000000000000000000000'
-  )
-}
+export const isYuzuDeployed = (): boolean => false
 
 export type YuzuPool = (typeof YUZU_CONFIG.pools)[number]
 export type YuzuFeeTier = (typeof YUZU_CONFIG.feeTiers)[number]

@@ -12,18 +12,19 @@
  * NOTE: Contract addresses TBA - mainnet deployment pending.
  */
 
-// Placeholder until official deployment
-const MERIDIAN_MODULE_ADDRESS =
-  process.env.NEXT_PUBLIC_MERIDIAN_ADDRESS ||
-  '0x0000000000000000000000000000000000000000000000000000000000000000'
+// No deployed address yet - mark as coming soon
+const MERIDIAN_MODULE_ADDRESS: string | null = null
 
 export const MERIDIAN_CONFIG = {
   moduleAddress: MERIDIAN_MODULE_ADDRESS,
   displayName: 'Meridian',
   color: '#8B5CF6',
   icon: 'meridian',
+  status: 'coming_soon' as const,
+  description: 'Native Liquidity Layer - Liquid staking with mMOVE',
 
   // View functions (expected patterns)
+  // Note: These won't be called until protocol is deployed
   viewFunctions: {
     getUserStake: `${MERIDIAN_MODULE_ADDRESS}::staking::get_user_stake`,
     getVaultPosition: `${MERIDIAN_MODULE_ADDRESS}::vault::get_position`,
@@ -55,12 +56,7 @@ export const MERIDIAN_CONFIG = {
   ],
 } as const
 
-// Check if Meridian is deployed
-export const isMeridianDeployed = (): boolean => {
-  return (
-    MERIDIAN_MODULE_ADDRESS !==
-    '0x0000000000000000000000000000000000000000000000000000000000000000'
-  )
-}
+// Check if Meridian is deployed (has valid address)
+export const isMeridianDeployed = (): boolean => false
 
 export type MeridianVaultType = (typeof MERIDIAN_CONFIG.vaultTypes)[number]

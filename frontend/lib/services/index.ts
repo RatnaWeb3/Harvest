@@ -27,6 +27,9 @@ export { yuzuService } from './yuzu-service'
 export { jouleService } from './joule-service'
 export { meridianService } from './meridian-service'
 
+// Price service
+export { getTokenPrice, getTokenPrices, clearPriceCache } from './price-service'
+
 // Aggregated Harvest service
 export { harvestService } from './harvest-service'
 export type { ClaimRequest, PortfolioSummary } from './harvest-service'

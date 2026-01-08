@@ -1,74 +1,89 @@
-# Harvest Completion Prompts
-
-This directory contains executable prompts to complete the Harvest application from ~35% to 100%.
+# Harvest Production Prompts - Joule Testnet Focus
 
 ## Overview
 
-Based on the completion analysis, the app is:
-- **~80% complete** for hackathon demo (UI + mock data)
-- **~35% complete** for production (needs real data, backend, deployment)
+The Harvest app focuses on **Joule (Movement Testnet)** as the only live protocol integration. Other protocols (Yuzu, Meridian, Thunderhead) are displayed as "Coming Soon" in the UI.
 
-These prompts will bring it to **100% production-ready**.
+**Decision:** Only Joule has confirmed contract addresses on Movement testnet. Other protocol deployments are TBA.
 
-## Prompt Execution Order
+**Current State:**
+- Frontend UI complete (Dashboard, Rewards, Airdrops, Leaderboard)
+- Protocol services structured
+- Joule testnet: `0x7ada55ecf28c22d62f0b05c21ecb20c5767ef743fb0bb2cf486948d0a24413bf`
+- Other protocols: Coming Soon (no addresses available)
 
-### Phase 1: Foundation (Prompts 1-2)
-Research and deploy core infrastructure.
+---
 
-| # | Prompt | Description | Est. Time |
-|---|--------|-------------|-----------|
-| 1 | Protocol Research | Find real module addresses for all protocols | 2-4 hours |
-| 2 | Contract Deployment | Complete and deploy Move contracts | 4-6 hours |
+## Reworked Prompt Structure
 
-### Phase 2: Real Data (Prompts 3-5)
-Replace mock data with real on-chain data.
+### Phase 1: Core Integration (SEQUENTIAL)
 
-| # | Prompt | Description | Est. Time |
-|---|--------|-------------|-----------|
-| 3 | Indexer Setup | Set up GraphQL indexer integration | 2-3 hours |
-| 4 | Protocol Data | Implement real data fetching | 4-6 hours |
-| 5 | Claim Transactions | Implement end-to-end claiming | 3-4 hours |
+| # | Prompt | Description |
+|---|--------|-------------|
+| 1 | Protocol Configuration | Configure Joule as active, mark others as Coming Soon |
+| 2 | Joule Data Integration | Real on-chain queries for Joule positions & rewards |
+| 3 | Claim Transactions | Wire up Joule claim functionality |
+| 4 | Coming Soon UI | Add Coming Soon states for inactive protocols |
 
-### Phase 3: Additional Protocols (Prompts 6-8)
-Add remaining protocol integrations.
+### Phase 2: Backend & Polish (PARALLEL after Phase 1)
 
-| # | Prompt | Description | Est. Time |
-|---|--------|-------------|-----------|
-| 6 | Thunderhead | Liquid staking integration | 2-3 hours |
-| 7 | Echelon + LayerBank | Lending integrations | 3-4 hours |
-| 8 | Canopy | Yield vault integration | 2-3 hours |
+| # | Prompt | Description |
+|---|--------|-------------|
+| 5 | Backend API | Build Node.js backend with PostgreSQL |
+| 6 | Frontend-Backend Integration | Connect frontend to backend API |
 
-### Phase 4: Features (Prompts 9)
-Implement advanced features.
+### Phase 3: Ship (FINAL)
 
-| # | Prompt | Description | Est. Time |
-|---|--------|-------------|-----------|
-| 9 | Auto-Compound | Implement auto-compound feature | 4-5 hours |
+| # | Prompt | Description |
+|---|--------|-------------|
+| 7 | E2E Testing | Test Joule flows, fix bugs |
+| 8 | Testnet Deployment | Deploy to Movement testnet |
 
-### Phase 5: Backend (Prompts 10-11)
-Build and connect backend infrastructure.
+---
 
-| # | Prompt | Description | Est. Time |
-|---|--------|-------------|-----------|
-| 10 | Backend API | Build Node.js backend | 6-8 hours |
-| 11 | Frontend Integration | Connect frontend to backend | 3-4 hours |
+## Execution Order
 
-### Phase 6: Complete Ecosystem (Prompts 12-14)
-Finish all integrations and add notifications.
+```
+[Prompt 1: Protocol Config]
+         |
+         v
+[Prompt 2: Joule Data]
+         |
+         v
+[Prompt 3: Claim Transactions]
+         |
+    +----+----+
+    |         |
+    v         v
+[Prompt 4]  [Prompt 5]
+Coming Soon  Backend
+    |         |
+    +----+----+
+         |
+         v
+[Prompt 6: Frontend-Backend]
+         |
+         v
+[Prompt 7: E2E Testing]
+         |
+         v
+[Prompt 8: Deployment]
+```
 
-| # | Prompt | Description | Est. Time |
-|---|--------|-------------|-----------|
-| 12 | Remaining Protocols | Mosaic, Moveposition, Matrix.fun | 3-4 hours |
-| 13 | Airdrop System | Real airdrop tracking | 4-5 hours |
-| 14 | Notifications | Telegram + Discord integration | 4-5 hours |
+---
 
-### Phase 7: Ship (Prompts 15-16)
-Test and deploy to production.
+## Protocol Status
 
-| # | Prompt | Description | Est. Time |
-|---|--------|-------------|-----------|
-| 15 | E2E Testing | Comprehensive testing and bug fixes | 4-6 hours |
-| 16 | Deployment | Production deployment | 3-4 hours |
+| Protocol | Status | Address |
+|----------|--------|---------|
+| **Joule** | Active | `0x7ada55ecf28c22d62f0b05c21ecb20c5767ef743fb0bb2cf486948d0a24413bf` |
+| Yuzu | Coming Soon | TBA |
+| Meridian | Coming Soon | TBA |
+| Thunderhead | Coming Soon | TBA |
+| Canopy | Coming Soon | TBA |
+| Echelon | Coming Soon | TBA |
+
+---
 
 ## How to Run Prompts
 
@@ -78,81 +93,24 @@ Test and deploy to production.
 run prompt 1
 ```
 
-Or run multiple:
-```
-run prompts 1-3
-```
-
 ### After completing a prompt:
-
-Report back to strategy session:
 ```
 completed prompt 1
 ```
 
-### If a prompt is blocked:
+---
 
-Document the blocker and skip to next prompt if possible:
-```
-prompt 1 blocked: Yuzu contracts not deployed yet
-```
+## Quick Reference
 
-## Dependencies
+| Prompt | File | Est. Time | Can Parallel With |
+|--------|------|-----------|-------------------|
+| 1 | `1.md` | 1-2 hrs | None |
+| 2 | `2.md` | 2-3 hrs | None |
+| 3 | `3.md` | 2-3 hrs | None |
+| 4 | `4.md` | 2-3 hrs | 5 |
+| 5 | `5.md` | 4-6 hrs | 4 |
+| 6 | `6.md` | 2-3 hrs | None |
+| 7 | `7.md` | 3-4 hrs | None |
+| 8 | `8.md` | 2-3 hrs | None |
 
-```
-Prompt 1 ──┬── Prompt 2
-           │
-           └── Prompt 3 ── Prompt 4 ── Prompt 5
-                                        │
-                              ┌─────────┴─────────┐
-                              │                   │
-                         Prompts 6-8          Prompt 9
-                              │                   │
-                              └─────────┬─────────┘
-                                        │
-                                   Prompt 10 ── Prompt 11
-                                        │
-                              ┌─────────┴─────────┐
-                              │                   │
-                         Prompt 12           Prompts 13-14
-                              │                   │
-                              └─────────┬─────────┘
-                                        │
-                                   Prompt 15 ── Prompt 16
-```
-
-## Issue Documentation
-
-Before starting each prompt, read relevant issues:
-- `docs/issues/ui/README.md` - UI/Frontend issues
-- `docs/issues/move/README.md` - Move/Contract issues
-- `docs/issues/indexer/README.md` - Indexer issues
-- `docs/issues/movement/README.md` - Movement network issues
-- `docs/issues/tooling/README.md` - Development tooling issues
-
-Document any new issues discovered during prompt execution.
-
-## Skills to Load
-
-Each prompt specifies which skill to load:
-- `move-dev` - For contract and blockchain work
-- `ui-dev` - For frontend development
-- `code-structure` - For file organization
-
-## Estimated Total Time
-
-- **Minimum (parallel work):** 30-40 hours
-- **Realistic (sequential):** 50-60 hours
-- **With blockers/debugging:** 70-80 hours
-
-## Success Criteria
-
-After all prompts complete:
-- [ ] All 10 protocols integrated with real data
-- [ ] Move contracts deployed on mainnet
-- [ ] Backend API running with database
-- [ ] Claims work end-to-end
-- [ ] Auto-compound works
-- [ ] Airdrop tracking works
-- [ ] Notifications work
-- [ ] Production deployed at harvest.app
+**Total: 8 prompts, ~18-27 hours**

@@ -6,7 +6,10 @@
 import { TransactionPayload } from '@/lib/move'
 
 // Protocol identifiers
-export type ProtocolId = 'yuzu' | 'joule' | 'meridian'
+export type ProtocolId = 'joule' | 'yuzu' | 'meridian' | 'thunderhead'
+
+// Protocol status
+export type ProtocolStatus = 'active' | 'coming_soon' | 'deprecated'
 
 // Position types
 export type PositionType = 'lp' | 'supply' | 'borrow' | 'stake' | 'vault'
@@ -48,12 +51,14 @@ export interface ProtocolService {
 
 // Protocol configuration
 export interface ProtocolConfig {
-  moduleAddress: string
+  moduleAddress: string | null
   displayName: string
   color: string
   icon: string
-  claimFunction: string
-  viewFunctions: {
+  status: ProtocolStatus
+  description?: string
+  claimFunction?: string
+  viewFunctions?: {
     getRewards: string
     getPositions: string
   }

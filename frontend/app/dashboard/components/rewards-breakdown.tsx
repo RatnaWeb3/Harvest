@@ -12,6 +12,7 @@ import { Badge } from '@/app/components/ui/badge'
 import { Skeleton } from '@/app/components/ui/skeleton'
 import { ProtocolBadge } from '@/components/shared/protocol-badge'
 import { EmptyState } from '@/components/shared/empty-state'
+import { COMING_SOON_PROTOCOLS, getProtocolConfig } from '@/constants/protocols'
 import type { ProtocolRewards, RewardItem } from '../types'
 
 interface RewardsBreakdownProps {
@@ -170,6 +171,17 @@ export function RewardsBreakdown({
             isClaiming={isClaiming}
           />
         ))}
+
+        {COMING_SOON_PROTOCOLS.length > 0 && (
+          <div className="mt-4 p-3 bg-muted/30 rounded-lg text-center">
+            <p className="text-sm text-muted-foreground">
+              Rewards from {COMING_SOON_PROTOCOLS.length} more protocols coming soon:{' '}
+              <span className="font-medium">
+                {COMING_SOON_PROTOCOLS.map((id) => getProtocolConfig(id).displayName).join(', ')}
+              </span>
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

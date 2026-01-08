@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3004",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"
@@ -33,7 +33,7 @@
     "clsx": "^2.1.1",
     "got": "^14.6.5",
     "lucide-react": "^0.460.0",
-    "next": "16.0.7",
+    "next": "16.1.1",
     "react": "19.2.1",
     "react-dom": "19.2.1",
     "sonner": "^1.7.1",
