@@ -76,20 +76,34 @@ export const api = {
   getUserRank: (address: string, period = 'weekly'): Promise<ApiLeaderboardEntry | null> =>
     apiClient.get(`/leaderboard/${address}?period=${period}`),
 
-  // Sponsorship (Gasless Transactions)
+  // Sponsorship (Gasless Transactions) - Uses Next.js API route (server-side only)
   sponsorTransaction: async (data: SponsorRequest): Promise<SponsorResponse> => {
     try {
-      return await apiClient.post('/sponsor', data)
+      const res = await fetch('/api/sponsor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: 'Sponsorship failed' }))
+        const err = new Error(error.error || 'Sponsorship failed') as Error & { fallback?: boolean }
+        err.fallback = error.fallback ?? true
+        throw err
+      }
+
+      return res.json()
     } catch (error) {
-      // Re-throw with fallback flag for caller to handle
       const err = error as Error & { fallback?: boolean }
       err.fallback = true
       throw err
     }
   },
 
-  getSponsorStatus: (): Promise<SponsorStatus> =>
-    apiClient.get('/sponsor/status'),
+  getSponsorStatus: async (): Promise<SponsorStatus> => {
+    const res = await fetch('/api/sponsor')
+    return res.json()
+  },
 }
 
 export { apiClient } from './client'

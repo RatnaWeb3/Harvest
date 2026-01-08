@@ -6,7 +6,7 @@
 import { GasStationClient } from '@shinami/clients/aptos'
 
 // Shinami API key from environment
-const SHINAMI_API_KEY = process.env.SHINAMI_API_KEY
+const SHINAMI_KEY = process.env.SHINAMI_KEY
 
 // Cache the client instance
 let shinamiClient: GasStationClient | null = null
@@ -16,13 +16,13 @@ let shinamiClient: GasStationClient | null = null
  * Returns null if API key is not configured
  */
 export function createShinamiClient(): GasStationClient | null {
-  if (!SHINAMI_API_KEY) {
-    console.warn('[Shinami] API key not configured - sponsorship disabled')
+  if (!SHINAMI_KEY) {
+    console.warn('[Shinami] SHINAMI_KEY not configured - sponsorship disabled')
     return null
   }
 
   if (!shinamiClient) {
-    shinamiClient = new GasStationClient(SHINAMI_API_KEY)
+    shinamiClient = new GasStationClient(SHINAMI_KEY)
     console.log('[Shinami] Gas Station client initialized')
   }
 
@@ -33,7 +33,7 @@ export function createShinamiClient(): GasStationClient | null {
  * Check if Shinami sponsorship is available
  */
 export function isSponsorshipAvailable(): boolean {
-  return Boolean(SHINAMI_API_KEY)
+  return Boolean(SHINAMI_KEY)
 }
 
 /**
