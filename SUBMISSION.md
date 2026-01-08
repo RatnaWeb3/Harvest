@@ -335,22 +335,6 @@ Each protocol integration follows a standard adapter pattern:
 
 ---
 
-## Team
-
-### Why We're Building This
-
-We're DeFi power users frustrated by the fragmented experience. We've personally missed airdrops, forgotten rewards, and wasted hours manually claiming across protocols.
-
-Harvest is the tool we wished existed.
-
-### Expertise
-- **Move Development** - Smart contract architecture
-- **Frontend Engineering** - React/Next.js applications
-- **DeFi Protocol Design** - Yield optimization strategies
-- **Product Design** - User-centric interfaces
-
----
-
 ## Technical Achievements
 
 ### What We Built
@@ -376,36 +360,8 @@ Harvest is the tool we wished existed.
 
 ---
 
-## Demo
-
-### Live Application
-- **URL**: [deployment-url]
-- **Network**: Movement Testnet
-
-### Test Flow
-1. Connect wallet via Privy (email) or native adapter
-2. View dashboard with sample positions
-3. Check pending rewards across protocols
-4. Execute batch claim (gasless)
-5. View claim history and leaderboard
-
----
-
-## Links
-
-- **GitHub**: [repository-url]
-- **Demo Video**: [video-url]
-- **Pitch Deck**: [deck-url]
-- **Documentation**: See APP_FLOW.md
-
----
-
 ## Conclusion
 
 Harvest transforms the fragmented Movement DeFi experience into a unified, gasless, and gamified rewards platform. By solving real user pain points with innovative technology, we're positioned to become the essential dashboard for every Movement user.
 
 **One Dashboard. All Rewards. Zero Hassle.**
-
----
-
-*Built with love for the Movement ecosystem*
