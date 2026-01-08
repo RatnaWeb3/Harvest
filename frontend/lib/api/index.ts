@@ -34,6 +34,31 @@ export interface RecordClaimData {
   valueUsd: number
 }
 
+export interface SponsorRequest {
+  rawTransaction: string
+  senderSignature: string
+}
+
+export interface SponsorResponse {
+  txHash: string
+  sponsored: boolean
+}
+
+export interface SponsorErrorResponse {
+  error: string
+  fallback: boolean
+  details?: string
+}
+
+export interface SponsorStatus {
+  available: boolean
+  fund?: {
+    balance: string
+    inFlight: string
+  }
+  reason?: string
+}
+
 // ============ API Methods ============
 
 export const api = {
@@ -50,6 +75,21 @@ export const api = {
 
   getUserRank: (address: string, period = 'weekly'): Promise<ApiLeaderboardEntry | null> =>
     apiClient.get(`/leaderboard/${address}?period=${period}`),
+
+  // Sponsorship (Gasless Transactions)
+  sponsorTransaction: async (data: SponsorRequest): Promise<SponsorResponse> => {
+    try {
+      return await apiClient.post('/sponsor', data)
+    } catch (error) {
+      // Re-throw with fallback flag for caller to handle
+      const err = error as Error & { fallback?: boolean }
+      err.fallback = true
+      throw err
+    }
+  },
+
+  getSponsorStatus: (): Promise<SponsorStatus> =>
+    apiClient.get('/sponsor/status'),
 }
 
 export { apiClient } from './client'

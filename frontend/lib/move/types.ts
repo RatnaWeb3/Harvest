@@ -10,12 +10,19 @@ export interface TransactionPayload {
   functionArguments: unknown[]
 }
 
+// Signed transaction data for sponsorship
+export interface SignedTransactionData {
+  rawTransaction: string
+  senderSignature: string
+}
+
 // Standardized wallet state across Privy and native wallets
 export interface WalletState {
   connected: boolean
   address: string | null
   isPrivy: boolean
   signAndSubmitTransaction: (payload: TransactionPayload) => Promise<string>
+  signForSponsorship: (payload: TransactionPayload) => Promise<SignedTransactionData>
   disconnect: () => Promise<void>
 }
 

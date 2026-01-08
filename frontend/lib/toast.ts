@@ -32,6 +32,21 @@ export function showTxError(message = 'Transaction failed') {
   toast.error(message)
 }
 
+export function showTxWarning(message: string) {
+  toast.warning(message)
+}
+
+export function showGaslessSuccess(txHash: string, message = 'Gasless claim confirmed') {
+  const explorerUrl = getExplorerUrl('txn', txHash)
+  toast.success(message, {
+    description: 'Gas sponsored by Harvest',
+    action: {
+      label: 'View',
+      onClick: () => window.open(explorerUrl, '_blank'),
+    },
+  })
+}
+
 export function dismissToast(toastId: string | number) {
   toast.dismiss(toastId)
 }

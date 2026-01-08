@@ -11,6 +11,7 @@ import { useAptosWallet, getExplorerUrl, aptos } from '@/lib/move'
 import { getProtocolService, ProtocolId } from '@/lib/services'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
+import { showTxWarning } from '@/lib/toast'
 import type { RewardItem } from '../types'
 
 export type TxStatus = 'idle' | 'pending' | 'submitted' | 'confirmed' | 'failed'
@@ -31,7 +32,7 @@ export interface ClaimState {
 }
 
 export function useClaimRewards() {
-  const { address, signAndSubmitTransaction } = useAptosWallet()
+  const { address, signAndSubmitTransaction, signForSponsorship } = useAptosWallet()
   const queryClient = useQueryClient()
   const [state, setState] = useState<ClaimState>({
     currentTx: null,
@@ -68,7 +69,7 @@ export function useClaimRewards() {
         throw new Error('Wallet not connected')
       }
 
-      console.log('[Claim] Starting claim for', protocol)
+      console.log('[Claim] Starting gasless claim for', protocol)
 
       const txId = `${protocol}-${Date.now()}`
       const tx: ClaimTransaction = {
@@ -91,22 +92,39 @@ export function useClaimRewards() {
       console.log('[Claim] Transaction payload:', payload)
       updateTxStatus({ status: 'submitted' })
 
-      const txHash = await signAndSubmitTransaction(payload)
-      console.log('[Claim] Transaction submitted:', txHash)
+      let txHash: string
+      let wasSponsored = false
+
+      // Try gasless sponsorship first
+      try {
+        console.log('[Claim] Attempting gasless sponsorship...')
+        const signedData = await signForSponsorship(payload)
+        const sponsorResult = await api.sponsorTransaction(signedData)
+        txHash = sponsorResult.txHash
+        wasSponsored = true
+        console.log('[Claim] Gasless transaction sponsored:', txHash)
+      } catch (sponsorError) {
+        // Fallback to user-paid gas
+        console.log('[Claim] Sponsorship failed, falling back to user gas:', sponsorError)
+        showTxWarning('Gasless unavailable, using your gas')
+
+        txHash = await signAndSubmitTransaction(payload)
+        console.log('[Claim] Transaction submitted with user gas:', txHash)
+      }
 
       // Wait for confirmation
       const result = await aptos.waitForTransaction({
         transactionHash: txHash,
       })
 
-      console.log('[Claim] Transaction confirmed:', result.success)
+      console.log('[Claim] Transaction confirmed:', result.success, wasSponsored ? '(gasless)' : '')
 
       if (!result.success) {
         throw new Error('Transaction failed on-chain')
       }
 
       updateTxStatus({ status: 'confirmed', txHash })
-      return { txHash, rewards, protocol }
+      return { txHash, rewards, protocol, wasSponsored }
     },
     onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['pending-rewards'] })
@@ -137,7 +155,7 @@ export function useClaimRewards() {
       }
 
       toast.success('Rewards claimed!', {
-        description: 'Transaction confirmed',
+        description: data.wasSponsored ? 'Gasless - sponsored by Harvest' : 'Transaction confirmed',
         action: {
           label: 'View',
           onClick: () => window.open(getExplorerUrl('txn', data.txHash), '_blank'),

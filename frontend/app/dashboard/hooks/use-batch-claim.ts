@@ -10,7 +10,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAptosWallet, getExplorerUrl } from '@/lib/move'
 import { harvestService } from '@/lib/services'
 import { ProtocolId as ServiceProtocolId } from '@/lib/services'
-import { showTxPending, showTxSuccess, showTxError, dismissToast } from '@/lib/toast'
+import { api } from '@/lib/api'
+import { showTxPending, showTxSuccess, showTxError, showTxWarning, dismissToast } from '@/lib/toast'
 import { PROTOCOL_NAMES } from '../constants'
 import { saveClaimRecord } from '../components/recent-claims'
 import type { RewardItem, ProtocolId } from '../types'
@@ -42,7 +43,7 @@ const initialState: BatchClaimState = {
 }
 
 export function useBatchClaim() {
-  const { address, signAndSubmitTransaction } = useAptosWallet()
+  const { address, signAndSubmitTransaction, signForSponsorship } = useAptosWallet()
   const queryClient = useQueryClient()
   const [state, setState] = useState<BatchClaimState>(initialState)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -97,14 +98,37 @@ export function useBatchClaim() {
           currentIndex: i,
         }))
 
-        const toastId = showTxPending(`Claiming ${PROTOCOL_NAMES[protocol]} rewards...`)
+        const toastId = showTxPending(`Claiming ${PROTOCOL_NAMES[protocol]} rewards (gasless)...`)
 
         try {
-          const txHash = await signAndSubmitTransaction(payloads[i])
+          let txHash: string
+          let wasSponsored = false
+
+          // Try gasless sponsorship first
+          try {
+            const signedData = await signForSponsorship(payloads[i])
+            const sponsorResult = await api.sponsorTransaction(signedData)
+            txHash = sponsorResult.txHash
+            wasSponsored = true
+          } catch (sponsorError) {
+            // Fallback to user-paid gas
+            console.log('[BatchClaim] Sponsorship failed, falling back to user gas:', sponsorError)
+            dismissToast(toastId)
+            const fallbackToastId = showTxPending(`Claiming ${PROTOCOL_NAMES[protocol]} (using your gas)...`)
+            showTxWarning('Gasless unavailable, using your gas')
+
+            txHash = await signAndSubmitTransaction(payloads[i])
+            dismissToast(fallbackToastId)
+          }
 
           results.push({ protocol, status: 'success', txHash, amount })
           dismissToast(toastId)
-          showTxSuccess(txHash, `Claimed ${PROTOCOL_NAMES[protocol]} rewards!`)
+
+          if (wasSponsored) {
+            showTxSuccess(txHash, `Claimed ${PROTOCOL_NAMES[protocol]} rewards (gasless)!`)
+          } else {
+            showTxSuccess(txHash, `Claimed ${PROTOCOL_NAMES[protocol]} rewards!`)
+          }
 
           saveClaimRecord({ protocol, txHash, amount, timestamp: Date.now() })
 
